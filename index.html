@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TASKORA — Smart Task Manager</title>
+  <meta name="description" content="TASKORA is a clean, fast task manager that keeps your tasks saved in your browser." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- Apply the saved theme before first paint to avoid a flash -->
+  <script>
+    try {
+      var t = localStorage.getItem("taskora-theme");
+      if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t);
+    } catch (e) {}
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <div class="app">
+    <!-- ============ SIDEBAR ============ -->
+    <aside class="sidebar" id="sidebar" aria-label="Main navigation">
+      <div class="sidebar__brand">
+        <div class="logo" aria-hidden="true"><i data-lucide="check-check"></i></div>
+        <div>
+          <span class="logo__name">TASKORA</span>
+          <span class="logo__tag">Smart Task Manager</span>
+        </div>
+        <button class="icon-btn sidebar__close" id="closeSidebar" type="button" aria-label="Close menu">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <button class="btn btn--primary btn--block" type="button" data-action="add-task">
+        <i data-lucide="plus"></i> New Task
+      </button>
+
+      <nav class="nav">
+        <p class="nav__label">Workspace</p>
+        <ul class="nav__list">
+          <li><button class="nav__item is-active" type="button" data-view="overview"><i data-lucide="layout-dashboard"></i><span>Overview</span></button></li>
+          <li><button class="nav__item" type="button" data-view="all"><i data-lucide="list-checks"></i><span>My Tasks</span><span class="nav__count" data-count="all">0</span></button></li>
+          <li><button class="nav__item" type="button" data-view="today"><i data-lucide="sun"></i><span>Today</span><span class="nav__count" data-count="today">0</span></button></li>
+          <li><button class="nav__item" type="button" data-view="upcoming"><i data-lucide="calendar-days"></i><span>Upcoming</span><span class="nav__count" data-count="upcoming">0</span></button></li>
+          <li><button class="nav__item" type="button" data-view="completed"><i data-lucide="circle-check"></i><span>Completed</span><span class="nav__count" data-count="completed">0</span></button></li>
+        </ul>
+
+        <p class="nav__label">Categories</p>
+        <ul class="nav__list" id="categoryNav"><!-- filled by script.js --></ul>
+      </nav>
+
+      <div class="sidebar__footer">
+        <button class="theme-switch" type="button" data-action="toggle-theme" aria-label="Toggle dark mode">
+          <i data-lucide="moon" class="theme-icon-dark"></i>
+          <i data-lucide="sun" class="theme-icon-light"></i>
+          <span class="theme-switch__text">Dark mode</span>
+          <span class="theme-switch__track" aria-hidden="true"><span class="theme-switch__thumb"></span></span>
+        </button>
+        <div class="profile">
+          <div class="profile__avatar" aria-hidden="true">MW</div>
+          <div>
+            <p class="profile__name">My Workspace</p>
+            <p class="profile__meta">Saved on this device</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+    <div class="overlay" id="overlay" hidden></div>
+
+    <!-- ============ MAIN ============ -->
+    <main class="main" id="main">
+      <header class="header">
+        <div class="header__top">
+          <button class="icon-btn menu-btn" id="openSidebar" type="button" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">
+            <i data-lucide="menu"></i>
+          </button>
+          <div class="header__titles">
+            <p class="header__date" id="currentDate"></p>
+            <h1 class="header__title" id="viewTitle">Let's make today productive.</h1>
+            <p class="header__subtitle" id="viewSubtitle">Small steps, done consistently, add up to big results.</p>
+          </div>
+          <div class="header__actions">
+            <button class="icon-btn" type="button" data-action="toggle-theme" aria-label="Toggle dark mode">
+              <i data-lucide="moon" class="theme-icon-dark"></i>
+              <i data-lucide="sun" class="theme-icon-light"></i>
+            </button>
+            <button class="btn btn--primary" type="button" data-action="add-task">
+              <i data-lucide="plus"></i><span class="hide-sm">Add Task</span>
+            </button>
+          </div>
+        </div>
+        <div class="search">
+          <i data-lucide="search" aria-hidden="true"></i>
+          <label for="searchInput" class="sr-only">Search tasks</label>
+          <input id="searchInput" type="search" placeholder="Search by title, description or category…" autocomplete="off" />
+          <kbd class="search__kbd" aria-hidden="true">/</kbd>
+        </div>
+      </header>
+
+      <!-- Dashboard (Overview only) -->
+      <section class="dashboard" id="dashboard" aria-label="Progress overview">
+        <div class="stats">
+          <article class="stat"><div class="stat__icon stat__icon--accent"><i data-lucide="layers"></i></div><div><p class="stat__label">Total Tasks</p><p class="stat__value" id="statTotal">0</p></div></article>
+          <article class="stat"><div class="stat__icon stat__icon--success"><i data-lucide="circle-check"></i></div><div><p class="stat__label">Completed</p><p class="stat__value" id="statCompleted">0</p></div></article>
+          <article class="stat"><div class="stat__icon stat__icon--warning"><i data-lucide="loader"></i></div><div><p class="stat__label">In Progress</p><p class="stat__value" id="statActive">0</p></div></article>
+          <article class="stat"><div class="stat__icon stat__icon--danger"><i data-lucide="alarm-clock"></i></div><div><p class="stat__label">Overdue</p><p class="stat__value" id="statOverdue">0</p></div></article>
+        </div>
+
+        <div class="progress-grid">
+          <article class="panel">
+            <div class="panel__head">
+              <h2 class="panel__title">Overall progress</h2>
+              <span class="panel__value" id="progressPercent">0%</span>
+            </div>
+            <div class="progress" role="progressbar" aria-label="Completion" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progressBar">
+              <div class="progress__fill" id="progressFill"></div>
+            </div>
+            <p class="panel__note" id="progressNote">No tasks yet — add one to get started.</p>
+          </article>
+          <article class="panel">
+            <div class="panel__head"><h2 class="panel__title">By category</h2></div>
+            <ul class="cat-summary" id="categorySummary"></ul>
+          </article>
+        </div>
+      </section>
+
+      <!-- Task section -->
+      <section class="tasks" aria-labelledby="tasksHeading">
+        <div class="tasks__head">
+          <div>
+            <h2 class="tasks__title" id="tasksHeading">Focus tasks</h2>
+            <p class="tasks__count" id="taskCount" aria-live="polite">0 tasks</p>
+          </div>
+          <div class="controls">
+            <label class="select">
+              <span class="sr-only">Filter tasks</span>
+              <i data-lucide="filter" aria-hidden="true"></i>
+              <select id="filterSelect">
+                <option value="all">All Tasks</option>
+                <option value="active">Active</option>
+                <option value="completed">Completed</option>
+                <option value="high">High Priority</option>
+                <option value="medium">Medium Priority</option>
+                <option value="low">Low Priority</option>
+                <option value="overdue">Overdue</option>
+              </select>
+            </label>
+            <label class="select">
+              <span class="sr-only">Sort tasks</span>
+              <i data-lucide="arrow-up-down" aria-hidden="true"></i>
+              <select id="sortSelect">
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="due">Due Date</option>
+                <option value="priority">Priority</option>
+              </select>
+            </label>
+            <div class="segmented" role="group" aria-label="Layout">
+              <button type="button" class="segmented__btn is-active" data-layout="list" aria-label="List view" aria-pressed="true"><i data-lucide="list"></i></button>
+              <button type="button" class="segmented__btn" data-layout="grid" aria-label="Grid view" aria-pressed="false"><i data-lucide="layout-grid"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="chips" id="categoryChips" role="group" aria-label="Filter by category"></div>
+
+        <div id="taskContainer"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ============ TASK MODAL ============ -->
+  <div class="modal" id="taskModal" hidden>
+    <div class="modal__backdrop" data-close-modal></div>
+    <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <form id="taskForm" novalidate>
+        <div class="modal__head">
+          <h2 id="modalTitle">New task</h2>
+          <button type="button" class="icon-btn" data-close-modal aria-label="Close dialog"><i data-lucide="x"></i></button>
+        </div>
+        <div class="modal__body">
+          <div class="field">
+            <label for="taskTitle">Title <span class="req" aria-hidden="true">*</span></label>
+            <input id="taskTitle" name="title" type="text" maxlength="120" required placeholder="e.g. Finish assignment draft" aria-describedby="titleError" />
+            <p class="field__error" id="titleError" role="alert"></p>
+          </div>
+          <div class="field">
+            <label for="taskDescription">Description <span class="optional">(optional)</span></label>
+            <textarea id="taskDescription" name="description" rows="3" maxlength="500" placeholder="Add a few details…"></textarea>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="taskCategory">Category</label>
+              <select id="taskCategory" name="category"></select>
+            </div>
+            <div class="field">
+              <label for="taskPriority">Priority</label>
+              <select id="taskPriority" name="priority">
+                <option value="low">Low</option>
+                <option value="medium" selected>Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="taskDate">Due date</label>
+              <input id="taskDate" name="dueDate" type="date" />
+            </div>
+            <div class="field">
+              <label for="taskTime">Due time <span class="optional">(optional)</span></label>
+              <input id="taskTime" name="dueTime" type="time" aria-describedby="timeError" />
+              <p class="field__error" id="timeError" role="alert"></p>
+            </div>
+          </div>
+        </div>
+        <div class="modal__foot">
+          <button type="button" class="btn btn--ghost" data-close-modal>Cancel</button>
+          <button type="submit" class="btn btn--primary" id="submitBtn">Create Task</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============ CONFIRM DIALOG ============ -->
+  <div class="modal" id="confirmModal" hidden>
+    <div class="modal__backdrop" data-close-confirm></div>
+    <div class="modal__dialog modal__dialog--sm" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmText">
+      <div class="confirm">
+        <div class="confirm__icon" aria-hidden="true"><i data-lucide="trash-2"></i></div>
+        <h2 id="confirmTitle">Delete this task?</h2>
+        <p id="confirmText">This can't be undone.</p>
+      </div>
+      <div class="modal__foot">
+        <button type="button" class="btn btn--ghost" data-close-confirm>Cancel</button>
+        <button type="button" class="btn btn--danger" id="confirmDeleteBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toasts -->
+  <div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
+
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
